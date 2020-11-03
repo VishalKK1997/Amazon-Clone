@@ -1,12 +1,38 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useHistory } from "react-router-dom";
+import { auth } from "../../firebase";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import "./Login.css";
 
 const Login = () => {
+  const history = useHistory();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  const handleSignIn = (e) => {
+    e.preventDefault();
+    auth
+      .signInWithEmailAndPassword(email, password)
+      .then((auth) => history.push("/"))
+      .catch((error) => toast.error(error.message));
+  };
+
+  const handleSignUp = (e) => {
+    e.preventDefault();
+    auth
+      .createUserWithEmailAndPassword(email, password)
+      .then((auth) => {
+        if (auth) {
+          history.push("/");
+        }
+      })
+      .catch((error) => toast.error(error.message));
+  };
+
   return (
     <div className="login">
+      <ToastContainer />
       <Link to="/">
         <img
           className="login__logo"
@@ -27,12 +53,18 @@ const Login = () => {
 
           <h5>Password</h5>
           <input
-            type="text"
+            type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
 
-          <button className="login__signInButton">Sign In</button>
+          <button
+            type="submit"
+            onClick={handleSignIn}
+            className="login__signInButton"
+          >
+            Sign In
+          </button>
         </form>
 
         <p>
@@ -41,7 +73,7 @@ const Login = () => {
           Interest-Based Ads Notice.
         </p>
 
-        <button className="login__registerButton">
+        <button onClick={handleSignUp} className="login__registerButton">
           Create your Amazon Account
         </button>
       </div>
