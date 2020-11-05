@@ -26,7 +26,7 @@ const SubTotal = () => {
         value={getBasketTotal(basket)}
         displayType={"text"}
         thousandSeparator={true}
-        prefix={"$"}
+        prefix={"₹"}
       />
 
       <button onClick={(e) => history.push("/payment")}>

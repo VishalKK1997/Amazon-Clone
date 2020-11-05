@@ -6,7 +6,8 @@ import "./Payment.css";
 import { CardElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import CurrencyFormat from "react-currency-format";
 import { getBasketTotal } from "../../context/reducer";
-import axios from "axios";
+import axiosInstance from "../../axios";
+import { db } from "../../firebase";
 
 const Payment = () => {
   const [{ basket, user }, dispatch] = useStateValue();
@@ -24,7 +25,7 @@ const Payment = () => {
   useEffect(() => {
     // generate the stripe special secret which allows us to charge the customer
     const getClientSecret = async () => {
-      const response = await axios({
+      const response = await axiosInstance({
         method: "post",
         // stripe expects the total in a currencies subunits
         url: `/payments/create?total=${getBasketTotal(basket) * 100}`,
@@ -33,6 +34,8 @@ const Payment = () => {
     };
     getClientSecret();
   }, [basket]);
+
+  console.log("Client secret --> ", clientSecret, user);
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -46,9 +49,22 @@ const Payment = () => {
       })
       .then(({ paymentIntent }) => {
         // paymentIntent = payment confirmation
+
+        db.collection("users")
+          .doc(user?.uid)
+          .collection("orders")
+          .doc(paymentIntent.id)
+          .set({
+            basket: basket,
+            amount: paymentIntent.amount,
+            created: paymentIntent.created,
+          });
+
         setSucceeded(true);
         setError(null);
         setProcessing(false);
+
+        dispatch({ type: "EMPTY_BASKET" });
 
         history.replace("/orders");
       });
@@ -85,8 +101,9 @@ const Payment = () => {
             <h3>Review Items and Delivery</h3>
           </div>
           <div className="payment__items">
-            {basket.map((item) => (
+            {basket.map((item, index) => (
               <CheckoutProduct
+                key={index}
                 id={item.id}
                 title={item.title}
                 image={item.image}
@@ -107,12 +124,16 @@ const Payment = () => {
               <CardElement onChange={handleChange} />
               <div className="payment__priceContainer">
                 <CurrencyFormat
-                  renderText={(value) => <h3>Order Total : {value}</h3>}
+                  renderText={(value) => (
+                    <h3 className="payment__detailsOrderTotal">
+                      Order Total : {value}
+                    </h3>
+                  )}
                   decimalScale={2}
                   value={getBasketTotal(basket)}
                   displayType={"text"}
                   thousandSeparator={true}
-                  prefix={"$"}
+                  prefix={"₹"}
                 />
 
                 <button disabled={processing || disabled || succeeded}>
